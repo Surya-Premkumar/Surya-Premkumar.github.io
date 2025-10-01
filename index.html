@@ -28,25 +28,64 @@
 #layout {     
     text-align:center;  
 }    
-#project {     
+ #project {
     text-align:center;  
 }                   
-#content {     
+ .content {
     text-align:center;  
     vertical-align:middle;   
 word-wrap:break-word;
 }
-body {
-        font-family: 'IBM Plex Mono', monospace;
-        
+ .cf {
+     display: flex;
+     align-items: center;
+     gap: 15px;  /* Creates space between image and text */
+ }
+ body {
+    font-family: 'IBM Plex Mono', monospace;
+    background-color: rgb(10, 49, 62);
+    color: white;
+    margin-left: 15%;
+    margin-right: 15%;
+    max-width: 1200px;
+    padding: 0 5%;
     }
-    a:link {
+
+ /* Responsive margins for different screen sizes */
+ @media (max-width: 1400px) {
+     body {
+         margin-left: 10%;
+         margin-right: 10%;
+     }
+ }
+
+ @media (max-width: 1024px) {
+     body {
+         margin-left: 8%;
+         margin-right: 8%;
+     }
+ }
+
+ @media (max-width: 768px) {
+     body {
+         margin-left: 5%;
+         margin-right: 5%;
+     }
+ }
+
+ @media (max-width: 480px) {
+     body {
+         margin-left: 3%;
+         margin-right: 3%;
+     }
+ }
+ a:link {
   color: rgb(134, 134, 243);
   background-color: transparent;
   text-decoration: none;
 }
 
-a:visited {
+ a:visited {
   color: rgb(68, 150, 131);
   background-color: transparent;
   text-decoration: none;
@@ -67,23 +106,20 @@ a:active {
 
 
 </head>
-<body style="background-color: rgb(10, 49, 62);  margin-right: 300px;
-    margin-left: 300px", text="white",
-  
-  >    
+
+<body>
     
 <div id="container">   
     <div class="header">
         <h1> Surya's Home </h1>
-        <p> Take what you want. Make what you can't. Control what you have </p>
     </div>
 <hr>
   
     <div id="layout">     
-        <div id="content"> 
+        <div class="content">
             <h2 style="text-align:left" > Who am I?</h2>    
             <p >
-                Hello! I'm Surya, a second-year MSci student in Computer Science specializing in Cyber Security. <br>
+                Hello! I'm Surya, a second-year MSci student in Computer Science specializing in Cybersecurity. <br>
                 I am a second-year Computer Science undergraduate with a strong foundation in programming and problem-solving. 
                 My studies in Java and core computer science concepts, combined with work experience in fast-paced environments, have strengthened my adaptability, teamwork, and attention to detail.
                 My passion for cybersecurity drives me to stay updated with the latest trends and challenges in the field.
@@ -96,7 +132,7 @@ a:active {
             </blockquote>
         </div>      
     </div>   
-    <div id="content">     
+    <div class="content">
         <h2 style="text-align:left" > Some Projects</h2>    
             <div id="projects-grid">
                 <a href="https://github.com/Surya-Premkumar" class="project-card">
@@ -111,7 +147,7 @@ a:active {
           
     </div>   
     <div id="project">   
-        <div id="content"> 
+        <div class="content">
             <h2 style="text-align:left"> Some Links</h2>
             <p><a href="https://leetcode.com/u/Surya-Premkumar/" title="Click"> Leetcode</a></p>
             <p><a href="https://www.linkedin.com/in/surya-premkumar-899209235/" title="Clack"> LinkedIn</a></p>
