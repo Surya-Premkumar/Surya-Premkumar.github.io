@@ -43,13 +43,20 @@ word-wrap:break-word;
  }
  body {
     font-family: 'IBM Plex Mono', monospace;
-    background-color: rgb(10, 49, 62);
+    background-color: rgb(135, 206, 235);
     color: white;
     margin-left: 15%;
     margin-right: 15%;
     max-width: 1200px;
     padding: 0 5%;
     }
+
+pagoda-scene {
+    display: block;
+    width: 600px;
+    height: 400px;
+    margin: 20px auto;
+  }
 
  /* Responsive margins for different screen sizes */
  @media (max-width: 1400px) {
@@ -145,7 +152,281 @@ a:active {
             </div>
 
           
-    </div>   
+    </div>
+    <pagoda-scene></pagoda-scene>  
+    <script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+class PagodaScene extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+
+    // Container for the renderer
+    const container = document.createElement('div');
+    container.style.width = '100%';
+    container.style.height = '100%';
+    this.shadowRoot.appendChild(container);
+
+    // --- Scene ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+    scene.fog = new THREE.Fog(0x87CEEB, 20, 50);
+
+    // --- Camera ---
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(16, 16, 16);
+    camera.lookAt(scene.position);
+
+    // --- Renderer ---
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // --- Controls ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.0;
+
+    // --- Colors ---
+    const COLORS = {
+      RED: 0x8a1c1c,
+      ROOF_DARK: 0x0d1f18,
+      ROOF_TRIM: 0x1a3b2e,
+      GRASS: 0x4dff5e,
+      GRASS_DARK: 0x3cb848,
+      DIRT: 0x5c3a21,
+      SAKURA: 0xFFB7C5
+    };
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    sunLight.position.set(10, 20, 10);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.1;
+    sunLight.shadow.camera.far = 50;
+    sunLight.shadow.camera.left = -20;
+    sunLight.shadow.camera.right = 20;
+    sunLight.shadow.camera.top = 20;
+    sunLight.shadow.camera.bottom = -20;
+    scene.add(sunLight);
+
+    // --- Voxel helper ---
+    const VOXEL_SIZE = 1;
+    const boxGeometry = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+    const voxelGroup = new THREE.Group();
+    scene.add(voxelGroup);
+
+    function createVoxel(x, y, z, color) {
+      const material = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.8,
+        metalness: 0.1
+      });
+      const voxel = new THREE.Mesh(boxGeometry, material);
+      voxel.position.set(x * VOXEL_SIZE, y * VOXEL_SIZE, z * VOXEL_SIZE);
+      voxel.castShadow = true;
+      voxel.receiveShadow = true;
+      voxelGroup.add(voxel);
+      return voxel;
+    }
+
+ // 1. Ground (Grass and Dirt)
+    const platformSize = 11;
+    const offset = Math.floor(platformSize / 2);
+
+    for (let x = -offset; x <= offset; x++) {
+        for (let z = -offset; z <= offset; z++) {
+            // Grass Layer
+            const isEdge = Math.abs(x) === offset || Math.abs(z) === offset;
+            // Randomly vary grass color for texture
+            const grassColor = Math.random() > 0.8 ? COLORS.GRASS_DARK : COLORS.GRASS;
+            createVoxel(x, 0, z, grassColor);
+
+            // Dirt Layer (2 blocks deep)
+            createVoxel(x, -1, z, COLORS.DIRT);
+            
+            // Random irregular bottom for floating island look
+            if (!isEdge || Math.random() > 0.5) {
+                createVoxel(x, -2, z, COLORS.DIRT);
+            }
+            if (Math.random() > 0.7 && !isEdge) {
+                createVoxel(x, -3, z, COLORS.DIRT);
+            }
+        }
+    }
+    
+
+    // 2. Pagoda Base (Red)
+    // 5x5 width, 4 blocks high
+    const baseWidth = 2; // radius
+    const baseHeight = 4;
+    for (let y = 1; y <= baseHeight; y++) {
+        for (let x = -baseWidth; x <= baseWidth; x++) {
+            for (let z = -baseWidth; z <= baseWidth; z++) {
+                createVoxel(x, y, z, COLORS.RED);
+            }
+        }
+    }
+
+    // 3. First Roof
+    // 7x7 overhangs
+    const roof1Y = baseHeight + 1;
+    const roof1Rad = baseWidth + 1;
+    
+    for (let x = -roof1Rad; x <= roof1Rad; x++) {
+        for (let z = -roof1Rad; z <= roof1Rad; z++) {
+            const isCorner = Math.abs(x) === roof1Rad && Math.abs(z) === roof1Rad;
+            const isEdge = Math.abs(x) === roof1Rad || Math.abs(z) === roof1Rad;
+            
+            // Upturned corners logic
+            let yPos = roof1Y;
+            if (isCorner) yPos += 1; // Curl up corners
+
+            // Inner roof fill vs Outer edge
+            const color = isEdge ? COLORS.ROOF_TRIM : COLORS.ROOF_DARK;
+            createVoxel(x, yPos, z, color);
+        }
+    }
+
+    // 4. Second Floor (Red)
+    // 3x3 width, 3 blocks high
+    const floor2Rad = 1;
+    const floor2BaseY = roof1Y + 1;
+    const floor2Height = 3;
+
+    for (let y = 0; y < floor2Height; y++) {
+        for (let x = -floor2Rad; x <= floor2Rad; x++) {
+            for (let z = -floor2Rad; z <= floor2Rad; z++) {
+                createVoxel(x, floor2BaseY + y, z, COLORS.RED);
+            }
+        }
+    }
+
+    // 5. Top Roof
+    // 5x5 overhangs
+    const roof2Y = floor2BaseY + floor2Height;
+    const roof2Rad = floor2Rad + 1; // 2
+    
+    for (let x = -roof2Rad; x <= roof2Rad; x++) {
+        for (let z = -roof2Rad; z <= roof2Rad; z++) {
+            const isCorner = Math.abs(x) === roof2Rad && Math.abs(z) === roof2Rad;
+            const isEdge = Math.abs(x) === roof2Rad || Math.abs(z) === roof2Rad;
+
+            let yPos = roof2Y;
+            if (isCorner) yPos += 1; // Upturned corners
+
+            createVoxel(x, yPos, z, isEdge ? COLORS.ROOF_TRIM : COLORS.ROOF_DARK);
+        }
+    }
+
+    // 6. The Peak (Pyramid style)
+    const peakY = roof2Y + 1;
+    
+    // Layer 1 of peak (3x3)
+    for (let x = -1; x <= 1; x++) {
+        for (let z = -1; z <= 1; z++) {
+             createVoxel(x, peakY, z, COLORS.ROOF_DARK);
+        }
+    }
+    
+    // Layer 2 of peak (1x1) - The tip
+    createVoxel(0, peakY + 1, 0, COLORS.ROOF_TRIM);
+    createVoxel(0, peakY + 2, 0, COLORS.ROOF_TRIM); // Finial
+
+    // --- Particles ---
+    function createParticles() {
+      const geometry = new THREE.BufferGeometry();
+      const count = 400;
+      const positions = new Float32Array(count * 3);
+      const speeds = [];
+      for (let i = 0; i < count; i++) {
+        positions[i*3] = (Math.random() - 0.5) * 20;
+        positions[i*3+1] = Math.random() * 15;
+        positions[i*3+2] = (Math.random() - 0.5) * 20;
+        speeds.push({
+          x: (Math.random() - 0.5) * 0.02,
+          y: Math.random() * 0.02 + 0.01,
+          z: (Math.random() - 0.5) * 0.02
+        });
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: COLORS.SAKURA,
+        size: 0.2,
+        transparent: true,
+        opacity: 0.8,
+        sizeAttenuation: true
+      });
+      const points = new THREE.Points(geometry, material);
+      return { mesh: points, speeds };
+    }
+
+    const particleSystem = createParticles();
+    scene.add(particleSystem.mesh);
+
+    // --- Center Scene ---
+    new THREE.Box3().setFromObject(voxelGroup).getCenter(voxelGroup.position).multiplyScalar(-1);
+
+    // --- Animation ---
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.01;
+
+      // Particle animation
+      const positions = particleSystem.mesh.geometry.attributes.position.array;
+      for (let i = 0; i < particleSystem.speeds.length; i++) {
+        positions[i*3] += particleSystem.speeds[i].x;
+        positions[i*3+1] -= particleSystem.speeds[i].y;
+        positions[i*3+2] += particleSystem.speeds[i].z;
+        if (positions[i*3+1] < -2) {
+          positions[i*3+1] = 20;
+          positions[i*3] = (Math.random() - 0.5) * 20;
+          positions[i*3+2] = (Math.random() - 0.5) * 20;
+        }
+      }
+      particleSystem.mesh.geometry.attributes.position.needsUpdate = true;
+
+      // Gentle bobbing
+      voxelGroup.position.y = Math.sin(time) * 0.5 - 2;
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Resize ---
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+  }
+}
+
+// Register custom element
+customElements.define('pagoda-scene', PagodaScene);
+
+</script> 
     <div id="project">   
         <div class="content">
             <h2 style="text-align:left"> Some Links</h2>
